@@ -1,20 +1,35 @@
-const express = require("express"); // importin Express
+const express = require("express"); // Importing Express
+const fs = require('fs');
+const path = require('path');
 const PORT = 3000; // Set the port number
 const axios = require('axios');
-const app = express(); // Creatig the Express ap application and storing it in a variable called app
+const app = express(); // Creating the Express application and storing it in a variable called app
 
-app.use(express.json()); // middleware for request body parsing
+app.use(express.json()); // Middleware for request body parsing
 
-// Simulated localStorage using an in-memory object
-let Storage = [];
+// Path to the file where we will store data
+const dataFile = path.join(__dirname, 'storage.json');
+
+// Load data from the file
+const loadData = () => {
+    if (fs.existsSync(dataFile)) {
+        return JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+    }
+    return {}; // Return an empty object if the file doesn't exist
+};
+
+// Save data to the file
+const saveData = (data) => {
+    fs.writeFileSync(dataFile, JSON.stringify(data, null, 2), 'utf8');
+};
 
 // Handle GET request
 app.get('/evans', (req, res) => {
-    res.send('My Name is Evans,Sir!');
-  });
+    res.send('My Name is Evans, Sir!');
+});
 
-  app.post("/001", (req, res) => {
-    let body = req.body
+app.post("/001", (req, res) => {
+    let body = req.body;
     res.send("Hey Evans!");
 });
 
@@ -36,28 +51,31 @@ app.post("/api/cats", async (req, res) => {
     }
 });
 
-// Store data in localStorage 
+// Store data in the "localStorage" (file-based storage)
 app.post('/store', (req, res) => {
-    console.log("Receieved:", req.body);
     const { key, value } = req.body;
     if (!key || !value) {
         return res.status(400).json({ message: 'Key and value are required' });
     }
-    localStorage[key] = value;
+    
+    const data = loadData(); // Load existing data from the file
+    data[key] = value; // Store the new key-value pair in memory
+    saveData(data); // Save it back to the file
+    
     res.json({ message: 'Data stored successfully', data: { key, value } });
 });
 
-// Retrieve data from localStorage
+// Retrieve data from the "localStorage" (file-based storage)
 app.get('/retrieve/:key', (req, res) => {
     const key = req.params.key;
-    if (!localStorage[key]) {
+    const data = loadData(); // Load data from the file
+    if (!data[key]) {
         return res.status(404).json({ message: 'Key not found' });
     }
-    res.json({ key, value: localStorage[key] });
+    res.json({ key, value: data[key] });
 });
 
-
-//Start the server
+// Start the server
 app.listen(PORT, () => {
     console.log(`Express server running at http://localhost:${PORT}`);
 });
